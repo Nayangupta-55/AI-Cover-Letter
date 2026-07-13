@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dear Hiring Manager - AI Cover Letter Generator</title>
+<meta name="description" content="Generate personalized, professional cover letters from your skills, target role and resume — simulated, AI-powered, or resume-aware.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+
+<div class="app">
+
+  <header class="masthead">
+    <div class="masthead__mark">
+      <span class="masthead__glyph">✒</span>
+      <div class="masthead__wordmark">
+        <span class="masthead__eyebrow"> SaaS Utility</span>
+        <h1 class="masthead__title">Dear Hiring Manager,</h1>
+        <p class="masthead__subtitle">An AI cover letter composer - draft, personalize, and post it.</p>
+      </div>
+    </div>
+
+    <div class="phase-track" id="phaseTrack" role="tablist" aria-label="Delivery phase">
+      <button class="phase-dot is-active" data-phase="1" role="tab" aria-selected="true">
+        <span class="phase-dot__index">01</span>
+        <span class="phase-dot__label">Simulated</span>
+      </button>
+      <button class="phase-dot" data-phase="2" role="tab" aria-selected="false">
+        <span class="phase-dot__index">02</span>
+        <span class="phase-dot__label">AI‑Generated</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+
+    <section class="desk" aria-label="Candidate details">
+
+      <form id="letterForm" novalidate>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="candidateName">Your name</label>
+            <input type="text" id="candidateName" name="candidateName" placeholder="Jay Sharma" autocomplete="name" required>
+          </div>
+          <div class="field">
+            <label for="jobRole">Job role</label>
+            <input type="text" id="jobRole" name="jobRole" placeholder="Frontend Engineer" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="targetCompany">Target company</label>
+          <input type="text" id="targetCompany" name="targetCompany" placeholder="Nimbus Robotics" required>
+        </div>
+
+        <div class="field">
+          <label for="keySkills">Key skills <span class="field__hint">comma‑separated</span></label>
+          <input type="text" id="keySkills" name="keySkills" placeholder="JavaScript, REST APIs, Figma, Team leadership" required>
+        </div>
+
+        <div class="field">
+          <label for="jobDescription">Job description <span class="field__hint">used for AI phases</span></label>
+          <textarea id="jobDescription" name="jobDescription" rows="4" placeholder="Paste the job posting here so the AI can tailor tone, keywords and requirements…"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Résumé <span class="field__hint">optional · PDF · Phase 03</span></label>
+          <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-describedby="resumeStatus">
+            <input type="file" id="resumeInput" accept="application/pdf" hidden>
+            <svg class="dropzone__icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p><strong>Drop résumé PDF</strong> or click to browse</p>
+            <p id="resumeStatus" class="dropzone__status">No file attached - the letter will be generated from the fields above only.</p>
+          </div>
+        </div>
+
+        <div class="mode-row">
+          <span class="mode-row__label">Compose using</span>
+          <div class="segmented" id="modeSegmented">
+            <button type="button" class="segmented__opt is-active" data-mode="simulate">Template <em>P1</em></button>
+            <button type="button" class="segmented__opt" data-mode="ai">Gemini AI <em>P2</em></button>
+          </div>
+        </div>
+
+        <div class="field key-field" id="apiKeyField" hidden>
+          <label for="apiKeyInput">Gemini API key <span class="field__hint">stored only in this browser</span></label>
+          <input type="password" id="apiKeyInput" name="apiKeyInput" placeholder="Paste your key, or set it in config.js">
+          <p class="field__hint">Never commit real keys. See <code>config.example.js</code> and the README.</p>
+        </div>
+
+        <button type="submit" class="stamp-btn" id="composeBtn">
+          <span class="stamp-btn__ring"></span>
+          <span class="stamp-btn__text">Compose letter</span>
+        </button>
+      </form>
+    </section>
+
+    <section class="letter-stage" aria-label="Generated cover letter">
+      <div class="paper" id="paper">
+        <div class="paper__fold" aria-hidden="true"></div>
+
+        <div class="paper__status" id="paperStatus">
+          <span class="status-dot"></span>
+          <span id="paperStatusText">Awaiting details</span>
+        </div>
+
+        <div class="paper__letterhead" id="letterhead">
+          <span class="paper__letterhead-name">Your Cover Letter</span>
+          <span class="paper__letterhead-date" id="todayDate"></span>
+        </div>
+
+        <div class="paper__body" id="paperBody">
+          <p class="paper__placeholder">Fill in the form and press <strong>Compose letter</strong> - your draft will be typed out here, ready to copy into any application.</p>
+        </div>
+
+        <div class="paper__generating" id="generatingState" hidden>
+          <span class="typewriter-dots"><i></i><i></i><i></i></span>
+          <span id="generatingLabel">Contacting Gemini…</span>
+        </div>
+      </div>
+
+      <div class="paper-actions">
+        <button class="ghost-btn" id="copyBtn" disabled>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 9h10v10H9zM5 15V5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          Copy to clipboard
+        </button>
+        <span class="paper-actions__note" id="copyNote" aria-live="polite"></span>
+      </div>
+    </section>
+
+  </main>
+
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+
+<script src="config.js" onerror="window.__CONFIG_MISSING__ = true;"></script>
+<script src="app.js"></script>
+</body>
+</html>
