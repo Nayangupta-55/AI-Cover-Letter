@@ -1,15 +1,6 @@
-/* =====================================================================
-   AI Cover Letter Generator — app.js
-   Phase 1  Base MVP & Data Simulation
-   Phase 2  LLM Integration & Security (Gemini API)
-   Phase 3  SaaS Capabilities (résumé upload + parsing)
-   ===================================================================== */
 (() => {
   "use strict";
 
-  /* ---------------------------------------------------------------
-     Element references
-  --------------------------------------------------------------- */
   const form            = document.getElementById("letterForm");
   const composeBtn      = document.getElementById("composeBtn");
   const modeSegmented    = document.getElementById("modeSegmented");
@@ -32,25 +23,17 @@
 
   const phaseTrack = document.getElementById("phaseTrack");
 
-  /* ---------------------------------------------------------------
-     Local state
-  --------------------------------------------------------------- */
   const state = {
-    mode: "simulate",     // "simulate" (Phase 1) | "ai" (Phase 2/3)
-    resumeText: "",        // populated by Phase 3 PDF parsing
+    mode: "simulate",     
+    resumeText: "",        
     resumeFileName: "",
-    lastLetterText: "",     // plain text, used by "copy" button
+    lastLetterText: "",     
   };
 
   letterheadDate.textContent = new Date().toLocaleDateString(undefined, {
     year: "numeric", month: "long", day: "numeric",
   });
 
-  /* =================================================================
-     PHASE 1 — Base MVP & Data Simulation
-     Controller function that interpolates form state into a
-     hardcoded template string. No network call.
-  ================================================================= */
   function generateSimulatedLetter({ candidateName, jobRole, targetCompany, keySkills }) {
     const skillsList = keySkills
       .split(",")
@@ -77,26 +60,13 @@
     ].join("\n");
   }
 
-  /* =================================================================
-     PHASE 2 — LLM Integration & Security
-     Programmatic prompt injection sent to the Gemini API.
-     The API key is NEVER hardcoded here — it is read from
-     config.js (git-ignored) or, as a convenience fallback,
-     from a password-type field the user fills in at runtime.
-  ================================================================= */
-
-  // config.js defines `window.APP_CONFIG = { GEMINI_API_KEY: "...", GEMINI_MODEL: "..." }`
-  // See config.example.js for the template. config.js must be listed in .gitignore.
+  
   function getApiKey() {
     const fromConfig = window.APP_CONFIG && window.APP_CONFIG.GEMINI_API_KEY;
     const fromField  = apiKeyInput.value.trim();
     return fromField || fromConfig || "";
   }
 
-  // Gemini model names churn quickly — gemini-1.5-* is fully retired, and
-  // gemini-2.5-flash closed to new users as of mid-2026. "gemini-flash-latest"
-  // is a Google-maintained alias that always points at the current GA Flash
-  // model, so it's the safest default; the rest are explicit fallbacks.
   const MODEL_FALLBACKS = ["gemini-flash-latest", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
 
   function getModel() {
@@ -118,8 +88,6 @@
       sections.push(``, `Job description:`, jobDescription.trim());
     }
 
-    // Phase 3: fold the parsed résumé text into the same prompt payload
-    // for a highly contextualized, personalized output.
     if (state.resumeText) {
       sections.push(
         ``,
@@ -137,9 +105,6 @@
   }
 
   async function callGemini(model, apiKey, formData) {
-    // Google's current guidance is to send the key as the x-goog-api-key
-    // header rather than a ?key= query param — this matters especially for
-    // the newer "AQ."-prefixed Auth keys, which are less reliable via query string.
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
     const payload = {
@@ -163,8 +128,7 @@
       const message = errBody?.error?.message || `Gemini request failed (HTTP ${res.status}).`;
       const err = new Error(message);
       err.status = res.status;
-      // Some retired/closed models return this as a 404, others as a
-      // 400 with an explanatory message — treat both as "try the next model".
+      
       err.isModelUnavailable = res.status === 404 || /no longer available|not found/i.test(message);
       throw err;
     }
@@ -183,9 +147,6 @@
       );
     }
 
-    // Try the configured model first, then fall back through other
-    // current free-tier models if that one 404s (retired / not enabled
-    // for this key's project) — 1.5-flash-era models are gone for good.
     const primary = getModel();
     const candidates = [primary, ...MODEL_FALLBACKS.filter(m => m !== primary)];
 
@@ -195,19 +156,12 @@
         return await callGemini(model, apiKey, formData);
       } catch (err) {
         lastError = err;
-        // Only keep trying the next model on a "model not found / retired"
-        // style error. Any other error (bad key, quota, network) surfaces immediately.
         if (!err.isModelUnavailable) throw err;
       }
     }
     throw lastError;
   }
 
-  /* =================================================================
-     PHASE 3 — File parsing (Résumé PDF → text)
-     Uses pdf.js entirely client-side; no file leaves the browser
-     except as part of the prompt sent in Phase 2's API call.
-  ================================================================= */
   if (window["pdfjsLib"]) {
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -239,7 +193,6 @@
       state.resumeFileName = file.name;
       dropzone.classList.add("is-filled");
       resumeStatus.textContent = `Attached: ${file.name} (${text.split(/\s+/).length} words extracted)`;
-      // A résumé only matters once we're actually calling the AI.
       if (state.mode === "ai") setActivePhase(3);
     } catch (err) {
       console.error(err);
@@ -261,9 +214,6 @@
   );
   dropzone.addEventListener("drop", (e) => handleResumeFile(e.dataTransfer.files[0]));
 
-  /* ---------------------------------------------------------------
-     Mode toggle (Phase 1 template vs Phase 2/3 AI)
-  --------------------------------------------------------------- */
   modeSegmented.addEventListener("click", (e) => {
     const btn = e.target.closest(".segmented__opt");
     if (!btn) return;
@@ -293,16 +243,13 @@
     [...modeSegmented.children].forEach(c => c.classList.toggle("is-active", c.dataset.mode === mode));
   }
 
-  /* ---------------------------------------------------------------
-     Rendering helpers
-  --------------------------------------------------------------- */
   function setPaperState(kind, label) {
-    paper.dataset.state = kind; // "idle" | "generating" | "done" | "error"
+    paper.dataset.state = kind; 
     paperStatusText.textContent = label;
   }
 
   function renderPlainLetter(text) {
-    // Phase 1 output: render as clean paragraphs, typewriter font.
+    
     paperBody.innerHTML = "";
     text.split(/\n{2,}/).forEach(block => {
       const p = document.createElement("p");
@@ -314,8 +261,6 @@
   }
 
   function renderMarkdownLetter(markdown) {
-    // Phase 2/3 output: parse markdown into clean HTML paragraphs
-    // rather than dumping one giant text block.
     if (window.marked) {
       paperBody.innerHTML = marked.parse(markdown);
     } else {
@@ -348,9 +293,6 @@
     };
   }
 
-  /* ---------------------------------------------------------------
-     Submit — dispatches to Phase 1 or Phase 2/3
-  --------------------------------------------------------------- */
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!form.reportValidity()) return;
@@ -369,7 +311,6 @@
       return;
     }
 
-    // ---- Phase 2 / 3: AI generation ----
     const usingResume = Boolean(state.resumeText);
     setActivePhase(usingResume ? 3 : 2);
     setPaperState("generating", usingResume ? "Personalizing with résumé · Phase 03" : "Generating · Phase 02");
@@ -395,9 +336,6 @@
     }
   });
 
-  /* ---------------------------------------------------------------
-     Copy to clipboard (Phase 1 UX requirement)
-  --------------------------------------------------------------- */
   copyBtn.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(state.lastLetterText);
@@ -408,9 +346,6 @@
     }
   });
 
-  /* ---------------------------------------------------------------
-     Startup notice if config.js wasn't found
-  --------------------------------------------------------------- */
   window.addEventListener("load", () => {
     if (window.__CONFIG_MISSING__ && !window.APP_CONFIG) {
       console.info(
